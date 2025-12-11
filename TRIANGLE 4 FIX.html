@@ -30,7 +30,7 @@
   .toast.show { opacity:1; pointer-events:auto; }
 
   /* ===========================
-      CSS HELP POPUP DITEMPEL DI SINI
+      CSS HELP POPUP 
      =========================== */
   .help-btn {
     position: fixed;
@@ -86,24 +86,65 @@
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  .input-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+  cursor: pointer;
+}
+
+.input-select:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 4px rgba(26,115,232,0.4);
+  outline: none;
+}
+
+.btn-small {
+  height: 46px;
+  padding: 0 14px;
+  font-size: 14px;
+  margin-left: 6px;
+}
+
 </style>
 
 </head>
 <body>
 
 <header>DGA Check | THE DUVAL TRIANGLE 4 FOR LTF AND FAULTS IN PAPER MINERAL OIL</header>
-<a href="Halaman ke 2.html"
+  <a href="Halaman ke 2.html"
      style="text-decoration:none; background-color:#003399; color:white; padding:8px 14px; border-radius:6px; position:absolute; right:40px; top:12px; font-size:15px; transition:background-color 0.2s;">
      ⬅ Kembali
   </a>
 </header>
 
-<div class="main">
-  <div class="input-section">
-  <h2>Analisis Duval Triangle 4 LTF (Mineral Oil)</h2>
 
-  <label for="lokasiTrafo">Lokasi / UP :</label>
-  <input id="lokasiTrafo" type="text" placeholder="contoh: UP Paiton" />
+  <div class="main">
+  <div class="input-section">
+  <h2>Analisis Duval Triangle 4 LTF</h2>
+
+    <div class="row">
+    <select id="upSelect" class="input-select"></select>
+    <button id="btnDeleteUP" class="btn-small" style="display:none;">Hapus UP</button>
+    </div>
+
+    <!-- Pilihan Trafo -->
+    <div class="row">
+      <select id="trafoSelect" class="input-select"></select>
+      <button id="btnDeleteTrafo" class="btn-small" style="display:none;">Hapus Trafo</button>
+    </div>
+
+    <!-- Tambah UP & Trafo -->
+    <div class="row">
+      <button id="btnAddUP" class="btn-small">Tambah UP</button>
+      <button id="btnAddTrafo" class="btn-small">Tambah Trafo</button>
+    </div>
+
+    <label for="tanggalUji">Tanggal Pengujian</label>
+    <input id="tanggalUji" type="date">
 
   <label for="h2">H₂ (Hydrogen):</label>
   <input id="h2" type="number" placeholder="contoh: 30" />
@@ -113,8 +154,6 @@
 
   <label for="c2h6">C₂H₆ (Ethane):</label>
   <input id="c2h6" type="number" placeholder="contoh: 10" />
-
-
     
 
   <!-- Tombol sejajar -->
@@ -139,15 +178,17 @@
   <table id="hasilTable">
     <thead>
 
-<tr>
-  <th>No</th>
-  <th>Lokasi</th>
-  <th>Tanggal</th>
-  <th>H₂</th>
-  <th>CH₄</th>
-  <th>C₂H₆</th>
-  <th>Fault</th>
-  <th>Rekomendasi</th>
+  <tr>
+      <th>No</th>
+      <th>UP</th>
+      <th>Trafo</th>
+      <th>Tanggal Uji</th>
+      <th>Tanggal Input</th>
+      <th>H₂</th>
+      <th>CH₄</th>
+      <th>C₂H₆</th>
+      <th>Fault</th>
+      <th>Rekomendasi</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -212,13 +253,145 @@
   };
 </script>
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-  plotDuval(0, 0, 0, null);
+
+//DATABASE PLN NP
+let databaseUP = {
+  "UP Gresik": ["Trafo Unit 1", "Trafo Unit 2", "Trafo Unit 3"],
+  "UP Paiton": ["Trafo GT1", "Trafo GT2"],
+  "UP Muara Karang": ["Trafo 1", "Trafo 2"],
+  "UP Muara Tawar": ["Trafo 1", "Trafo 2", "Trafo 3"],
+  "UP Indramayu": ["Trafo Unit 1"],
+  "UP Cirata": ["Trafo 1", "Trafo 2"],
+  "UP Saguling": ["Trafo 1", "Trafo 2"],
+  "UP Grati": ["Trafo GT1", "Trafo GT2"],
+  "UP Kamojang": ["Trafo Geothermal 1", "Trafo Geothermal 2"]
+};
+
+databaseUP = JSON.parse(localStorage.getItem("dbUpTrafo")) || databaseUP;
+const saveDB = () => localStorage.setItem("dbUpTrafo", JSON.stringify(databaseUP));
+
+/* ============================
+   LOAD UP
+============================ */
+function loadUP() {
+  const upSel = document.getElementById("upSelect");
+  upSel.innerHTML = `<option value="">-- Pilih UP --</option>` +
+    Object.keys(databaseUP).map(u => `<option>${u}</option>`).join("");
+}
+
+/* ============================
+   LOAD TRAFO SESUAI UP
+============================ */
+function loadTrafo(up) {
+  const trSel = document.getElementById("trafoSelect");
+  trSel.innerHTML = `<option value="">-- Pilih Trafo --</option>`;
+
+  if (!up) return;
+
+  trSel.innerHTML += databaseUP[up]
+    .map(t => `<option>${t}</option>`)
+    .join("");
+}
+
+/* ============================
+   EVENT SELECT UP
+============================ */
+document.getElementById("upSelect").addEventListener("change", function () {
+  const up = this.value;
+  loadTrafo(up);
+
+  document.getElementById("btnDeleteUP").style.display = up ? "inline-block" : "none";
 });
 
-const STORAGE_KEY = "riwayat DuvalTriangle 4 LTF";
-let hasilData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-updateTable();
+/* ============================
+   EVENT SELECT TRAFO
+============================ */
+document.getElementById("trafoSelect").addEventListener("change", function () {
+  const tr = this.value;
+  document.getElementById("btnDeleteTrafo").style.display = tr ? "inline-block" : "none";
+});
+
+/* ============================
+   TAMBAH UP
+============================ */
+document.getElementById("btnAddUP").addEventListener("click", () => {
+  const newUP = prompt("Nama UP baru:");
+  if (!newUP) return;
+
+  if (databaseUP[newUP]) return alert("UP sudah ada!");
+
+  databaseUP[newUP] = [];
+  saveDB();
+  loadUP();
+});
+
+/* ============================
+   TAMBAH TRAFO
+============================ */
+document.getElementById("btnAddTrafo").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  if (!up) return alert("Pilih UP dulu!");
+
+  const newTrafo = prompt("Nama trafo baru:");
+  if (!newTrafo) return;
+
+  databaseUP[up].push(newTrafo);
+  saveDB();
+  loadTrafo(up);
+});
+
+/* ============================
+   HAPUS UP
+============================ */
+document.getElementById("btnDeleteUP").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  if (!up) return;
+
+  if (confirm(`Hapus UP "${up}" beserta seluruh Trafonya?`)) {
+    delete databaseUP[up];
+    saveDB();
+    loadUP();
+    document.getElementById("trafoSelect").innerHTML = `<option value="">-- Pilih Trafo --</option>`;
+    document.getElementById("btnDeleteUP").style.display = "none";
+    document.getElementById("btnDeleteTrafo").style.display = "none";
+  }
+});
+
+/* ============================
+   HAPUS TRAFO
+============================ */
+document.getElementById("btnDeleteTrafo").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  const tr = document.getElementById("trafoSelect").value;
+
+  if (!tr) return;
+
+  if (confirm(`Hapus Trafo "${tr}"?`)) {
+    databaseUP[up] = databaseUP[up].filter(t => t !== tr);
+    saveDB();
+    loadTrafo(up);
+    document.getElementById("btnDeleteTrafo").style.display = "none";
+  }
+});
+
+document.addEventListener("DOMContentLoaded", loadUP);
+</script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    plotDuval(0, 0, 0, null);
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    const tUji = document.getElementById("tanggalUji");
+    if (tUji && !tUji.value) {
+      tUji.value = today;
+    }
+  });
+  const STORAGE_KEY = "riwayat duval 4 LTF";
+  let hasilData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  updateTable();
+
 
 // === KOORDINAT AREA DUVAL 4 ===
 const regions = [
@@ -316,85 +489,76 @@ function detectRegionForPoint(a, b, c) {
   return null;
 }
 
-// === FUNGSI UTAMA HITUNG & PLOT ===
 function hitungDanPlot() {
 
-  // 🔄 GANTI SENYAWA SESUAI PERMINTAAN
+  const up    = document.getElementById("upSelect").value || "-";
+  const trafo = document.getElementById("trafoSelect").value || "-";
+  const today = new Date().toISOString().split("T")[0];
+  const tUjiInput = document.getElementById("tanggalUji").value;
+  const tanggalUji   = tUjiInput || today;
+  const tanggalInput = today;
   const h2   = parseFloat(document.getElementById("h2").value);
   const ch4  = parseFloat(document.getElementById("ch4").value);
   const c2h6 = parseFloat(document.getElementById("c2h6").value);
 
-  const lokasi = document.getElementById("lokasiTrafo").value || "-";
-  
+  if (!up || !trafo) {
+    alert("Pilih UP dan Trafo terlebih dahulu!");
+    return;
+  }
+
   if (isNaN(h2) || isNaN(ch4) || isNaN(c2h6) || (h2 + ch4 + c2h6) === 0) {
     alert("Isi semua nilai gas dengan benar!");
     return;
   }
 
   const total = h2 + ch4 + c2h6;
-
-  // 🔄 PERSENTASE BARU H₂ – CH₄ – C₂H₆
   const pH2   = (h2   / total) * 100;
   const pCH4  = (ch4  / total) * 100;
   const pC2H6 = (c2h6 / total) * 100;
 
-  // === LOW NORMAL BARU ===
+  // === LOW NORMAL ===
   if (h2 < 40 && ch4 < 20 && c2h6 < 15) {
-
-    const hasilLow = "Normal";
+    const hasilLow = "NORMAL";
     const rekomLow = [
       "Peralatan dalam kondisi normal.",
-      "Lakukan monitoring rutin sesuai jadwal (tahunan / semester).",
+      "Lakukan monitoring rutin sesuai jadwal.",
       "Tidak diperlukan tindakan korektif khusus."
     ];
 
     document.getElementById("hasilText").innerHTML =
-      `<b>Hasil:</b> ${hasilLow}<br><b>Rekomendasi:</b><ol>${rekomLow.map(r => `<li>${r}</li>`).join('')}</ol>
-       <div style='margin-top:8px;color:#333;'>%H₂=${pH2.toFixed(1)} | %CH₄=${pCH4.toFixed(1)} | %C₂H₆=${pC2H6.toFixed(1)}</div>`;
+      `<b>Hasil:</b> ${hasilLow}<br><b>Rekomendasi:</b><ol>${rekomLow.map(r => `<li>${r}</li>`).join("")}</ol>`;
 
     hasilData.push({
-      tanggal: new Date().toLocaleString(),
-      lokasi,
-      h2,
-      ch4,
-      c2h6,
+      up, trafo, tanggalUji, tanggalInput,
+      h2, ch4, c2h6,
       fault: hasilLow,
       rekom: rekomLow.join("; ")
     });
 
     saveToStorage();
     updateTable();
-
-    // ❗ Jangan tampilkan plot
     Plotly.purge("duvalPlot");
-
     return;
   }
 
-  // === DETEKSI ZONA DENGAN SENYAWA BARU ===
+  // === DETEKSI ZONA ===
   const found = detectRegionForPoint(pH2, pCH4, pC2H6);
   const fault = found ? found.name : "Tidak terklasifikasi";
-  const info = rekomendasiMap[fault];
+  const info  = rekomendasiMap[fault];
 
   document.getElementById("hasilText").innerHTML = info
-    ? `<b>Hasil:</b> ${info.hasil}<br><b>Rekomendasi:</b><ol>${info.rekom.map(r=>`<li>${r}</li>`).join('')}</ol>
-       <div style='margin-top:8px;color:#333;'>%H₂=${pH2.toFixed(1)} | %CH₄=${pCH4.toFixed(1)} | %C₂H₆=${pC2H6.toFixed(1)}</div>`
+    ? `<b>Hasil:</b> ${info.hasil}<br><b>Rekomendasi:</b><ol>${info.rekom.map(r=>`<li>${r}</li>`).join("")}</ol>`
     : `<b>Hasil:</b> ${fault}`;
 
   hasilData.push({
-    tanggal: new Date().toLocaleString(),
-    lokasi,
-    h2,
-    ch4,
-    c2h6,
+    up, trafo, tanggalUji, tanggalInput,
+    h2, ch4, c2h6,
     fault,
     rekom: info ? info.rekom.join("; ") : "-"
   });
 
   saveToStorage();
   updateTable();
-  
-  
   plotDuval(pH2, pCH4, pC2H6, found);
 }
 
@@ -439,7 +603,7 @@ function plotDuval(aVal = 0, bVal = 0, cVal = 100, foundRegion = null) {
       { text: "% CH₄ →", x: 0.78, y: 0.5, textangle: 60,  showarrow: false, font: { size: 14, color: '#003399' } },
       { text: "← % C₂H₆", x: 0.5, y: -0.15, showarrow: false, font: { size: 14, color: '#003399' } }
     ],
-    title: 'DUVAL TRIANGLE (H₂ / CH₄ / C₂H₆)',
+    title: 'DUVAL TRIANGLE 4 FOR LTF - MINERAL OILS',
     height: 500,
     showlegend: true,
     legend: { orientation: 'h', x: 0.1, y: -0.12 }
@@ -483,8 +647,10 @@ function updateTable() {
         return `
         <tr>
           <td>${i + 1}</td>
-          <td>${d.lokasi || ""}</td>
-          <td>${d.tanggal}</td>
+          <td>${d.up || "-"}</td>
+          <td>${d.trafo || "-"}</td>
+          <td>${d.tanggalUji || "-"}</td>
+          <td>${d.tanggalInput || "-"}</td>
           <td>${d.h2}</td>
           <td>${d.ch4}</td>
           <td>${d.c2h6}</td>
@@ -492,28 +658,37 @@ function updateTable() {
           <td>${rekomList}</td>
         </tr>`;
       }).join("")
-    : '<tr><td colspan="8" style="color:#888;">Belum ada data</td></tr>';
+    : '<tr><td colspan="10" style="color:#888;">Belum ada data</td></tr>';
 }
-
-
 
 
 // === HAPUS SEMUA DATA ===
 function hapusSemua(){
-  if(confirm("Hapus semua riwayat analisis?")){
-    hasilData=[];localStorage.removeItem(STORAGE_KEY);updateTable();
+    if(confirm("Hapus semua riwayat analisis?")){
+      hasilData=[];
+      localStorage.removeItem(STORAGE_KEY);
+      updateTable();
+    }
   }
-}
-/* =======================
-   Table & storage tambahan
-   ======================= */
+
 function saveToStorage() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(hasilData));
 }
+function safeExcelDate(v) {
+  if (!v) return "-";
+  if (typeof v === "number") {
+    const d = new Date((v - 25569) * 86400 * 1000);
+    return d.toISOString().split("T")[0];
+  }
+  if (typeof v === "string") {
+    const d = new Date(v);
+    return isNaN(d) ? v : d.toISOString().split("T")[0];
+  }
+  return v;
+}
 
-/* =======================
-   Excel import (SheetJS)
-======================= */
+
+//Excel Import 
 document.getElementById('excelFile').addEventListener('change', function (e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -521,137 +696,122 @@ document.getElementById('excelFile').addEventListener('change', function (e) {
   const reader = new FileReader();
   reader.onload = function (evt) {
     const data = new Uint8Array(evt.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
+    const workbook = XLSX.read(data, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: 0 });
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    const today = new Date().toISOString().split("T")[0];
 
-    rows.forEach((row) => {
+    rows.forEach(row => {
 
-      // 1) Ambil lokasi
-      const lokasi =
-        row["Nama UP-Trafo"] ||
-        row["Lokasi"] ||
-        row["lokasi"] ||
-        "-";
+      
+      const up      = row.UP || row["Nama UP"] || "-";
+      const trafo   = row.Trafo || row["Nama Trafo"] || "-";
+      const tanggalUji   = safeExcelDate(row["Tanggal Uji"] || row.Tanggal || "");
+      const tanggalInput = today;
+      const h2   = Number(row.H2   || row["H₂"]   || 0);
+      const ch4  = Number(row.CH4  || row["CH₄"]  || 0);
+      const c2h6 = Number(row.C2H6 || row["C₂H₆"] || 0);
 
-      // 2) Ambil gas Duval 4 (H₂ / CH₄ / C₂H₆)
-      const h2   = Number(row.H2   ?? row.h2   ?? row["H₂"]   ?? 0);
-      const ch4  = Number(row.CH4  ?? row.ch4  ?? row["CH₄"]  ?? 0);
-      const c2h6 = Number(row.C2H6 ?? row.c2h6 ?? row["C₂H₆"] ?? 0);
-
-      // Jika nol semua → skip
       if ((h2 + ch4 + c2h6) === 0) return;
+      if (h2 < 40 && ch4 < 20 && c2h6 < 15) {
+        const rekomLowNormal = [
+          "Peralatan dalam kondisi normal.",
+          "Lakukan monitoring rutin sesuai jadwal.",
+          "Tidak diperlukan tindakan korektif."
+        ];
 
-      // 3) Hitung persen
+        hasilData.push({
+          up,
+          trafo,
+          tanggalUji,
+          tanggalInput,
+          h2, ch4, c2h6,
+          fault: "NORMAL",
+          rekom: rekomLowNormal.join("; ")
+        });
+
+        return;
+      }
+
       const total = h2 + ch4 + c2h6;
       const pH2   = (h2   / total) * 100;
       const pCH4  = (ch4  / total) * 100;
       const pC2H6 = (c2h6 / total) * 100;
-
-      // === LOW NORMAL (BATAS BARU) ===
-      if (h2 < 40 && ch4 < 20 && c2h6 < 15) {
-
-        const hasilLow = "Normal";
-        const rekomLow = [
-          "Peralatan dalam kondisi normal.",
-          "Lakukan monitoring rutin sesuai jadwal (tahunan / semester).",
-          "Tidak diperlukan tindakan korektif khusus."
-        ];
-
-        hasilData.push({
-          tanggal: row.Tanggal || new Date().toLocaleString(),
-          lokasi,
-          h2,
-          ch4,
-          c2h6,
-          fault: hasilLow,
-          rekom: rekomLow.join("; ")
-        });
-
-        return; // ⛔ STOP — jangan lanjut ke deteksi Duval
-      }
-
-      // === DETEKSI ZONA DUVAL ===
       const found = detectRegionForPoint(pH2, pCH4, pC2H6);
       const fault = found ? found.name : "Tidak terklasifikasi";
-      const info = rekomendasiMap[fault];
+      const info  = rekomendasiMap[fault];
 
       hasilData.push({
-        tanggal: row.Tanggal || new Date().toLocaleString(),
-        lokasi,
-        h2,
-        ch4,
-        c2h6,
-        fault: info ? info.hasil : fault,
+        up,
+        trafo,
+        tanggalUji,
+        tanggalInput,
+        h2, ch4, c2h6,
+        fault,
         rekom: info ? info.rekom.join("; ") : "-"
       });
-
     });
 
     saveToStorage();
     updateTable();
+    Plotly.purge('duvalPlot');
 
-    // === Tampilkan titik di grafik ===
-    if (hasilData.length > 0) {
-      Plotly.purge("duvalPlot");
+    const traces = hasilData
+      .filter(d => d.fault !== "NORMAL")
+      .map((d, i) => {
+        const total = d.h2 + d.ch4 + d.c2h6;
+        if (total === 0) return null;
 
-      const traces = hasilData
-        .map((d, i) => {
-          const total = d.h2 + d.ch4 + d.c2h6;
-          if (total === 0) return null;
+        const pH2   = (d.h2   / total) * 100;
+        const pCH4  = (d.ch4  / total) * 100;
+        const pC2H6 = (d.c2h6 / total) * 100;
 
-          const pH2   = (d.h2   / total) * 100;
-          const pCH4  = (d.ch4  / total) * 100;
-          const pC2H6 = (d.c2h6 / total) * 100;
+        return {
+          type: 'scatterternary',
+          mode: 'markers+text',
+          a: [pH2],
+          b: [pC2H6],
+          c: [pCH4],
+          marker: {
+            size: 10,
+            color: 'black',
+            symbol: 'circle',
+            line: { color: 'white', width: 1 }
+          },
+          text: [`S${i + 1}`],
+          textposition: 'top center',
+          showlegend: false 
+        };
+      }).filter(Boolean);
 
-          return {
-            type: "scatterternary",
-            mode: "markers+text",
-            a: [pH2],
-            b: [pCH4],
-            c: [pC2H6],
-            marker: {
-              size: 10,
-              color: "black",
-              symbol: "circle",
-              line: { color: "white", width: 1 }
-            },
-            text: [`S${i + 1}`],
-            textposition: "top center",
-            showlegend: false
-          };
-        })
-        .filter(Boolean);
+    const areaTraces = regions.map(r => ({
+      type: 'scatterternary',
+      mode: 'lines',
+      fill: 'toself',
+      fillcolor: r.color,
+      line: { color: 'black', width: 1 },
+      name: r.name,
+      a: r.coords.map(p => p[0]),
+      b: r.coords.map(p => p[1]),
+      c: r.coords.map(p => p[2])
+    }));
 
-      const areaTraces = regions.map((r) => ({
-        type: "scatterternary",
-        mode: "lines",
-        fill: "toself",
-        fillcolor: r.color,
-        line: { color: "black", width: 1 },
-        name: r.name,
-        a: r.coords.map((p) => p[0]),
-        b: r.coords.map((p) => p[1]),
-        c: r.coords.map((p) => p[2])
-      }));
-
-      Plotly.react("duvalPlot", [...areaTraces, ...traces], {
-        ternary: {
-          sum: 100,
-          aaxis: { dtick: 10 },
-          baxis: { dtick: 10 },
-          caxis: { dtick: 10 }
-        },
-        annotations: [
-          { text: "% H₂ →", x: 0.22, y: 0.5, textangle: -60, showarrow: false },
-          { text: "% CH₄ →", x: 0.78, y: 0.5, textangle: 60, showarrow: false },
-          { text: "← % C₂H₆", x: 0.5, y: -0.15, showarrow: false }
-        ],
-        title: "Duval Triangle 4 (H₂ / CH₄ / C₂H₆)",
-        height: 500
-      });
-    }
+    Plotly.react('duvalPlot', [...areaTraces, ...traces], {
+      ternary: {
+        sum: 100,
+        aaxis: { dtick: 10 },
+        baxis: { dtick: 10 },
+        caxis: { dtick: 10 }
+      },
+      annotations: [
+        { text: "% H₂ →",  x: 0.22, y: 0.5,  textangle: -60, showarrow: false },
+        { text:" % CH₄ →", x: 0.78, y: 0.5,  textangle: 60,  showarrow: false },
+        { text: "← % C₂H₆", x: 0.5,  y: -0.15, showarrow: false }
+      ],
+      title: 'DUVAL TRIANGLE 4 LTF',
+      height: 500
+    });
 
     showToast("Import Excel selesai — titik ditampilkan");
     e.target.value = "";
@@ -660,33 +820,22 @@ document.getElementById('excelFile').addEventListener('change', function (e) {
   reader.readAsArrayBuffer(file);
 });
 
-// === EXPORT CSV ===
 function downloadExcel() {
-
-  let csv = "No,Tanggal,H2,CH4,C2H6,Fault,Rekomendasi\n";
+  let csv = "No,UP,Trafo,Tanggal Uji,Tanggal Input,H2,CH4,C2H6,Fault,Rekomendasi\n";
 
   hasilData.forEach((d, i) => {
-    const r = (d.rekom || "").replace(/,/g, ';');
-    csv += `${i+1},${d.tanggal},${d.h2},${d.ch4},${d.c2h6},"${d.fault}","${r}"\n`;
+    const r = (d.rekom || "").replace(/,/g, ";");
+    csv += `${i + 1},${d.up || "-"},${d.trafo || "-"},${d.tanggalUji || "-"},${d.tanggalInput || "-"},${d.h2},${d.ch4},${d.c2h6},"${d.fault}","${r}"\n`;
   });
 
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "Riwayat_Duval4_LTF_H2_CH4_C2H6.csv";
+  a.download = "Riwayat Duval 4 LTF.csv";
   a.click();
 
-  showToast("CSV berhasil dibuat");
+  showToast("CSV berhasil diunduh!");
 }
-
-
-function showToast(msg="Data disimpan ke Excel"){
-  const t=document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2000);
-}
-
 </script>
 </body>
 </html>
