@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DGA Check | THE DUVAL TRIANGLE 2 LTC-MR</title>
+  <title>DGA Check | THE DUVAL TRIANGLE 2 LTC MR</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
@@ -85,14 +85,30 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
+    
   }
+  .input-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+  cursor: pointer;
+}
+
+.input-select:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 4px rgba(26,115,232,0.4);
+  outline: none;
+}
 </style>
 
 </head>
 <body>
 
-<header>DGA Check | THE DUVAL TRIANGLE 2 LTC-MR</header>
-<a href="Halaman ke 2.html"
+<header>DGA Check | THE DUVAL TRIANGLE 2 LTC MR</header>
+  <a href="Halaman ke 2.html"
      style="text-decoration:none; background-color:#003399; color:white; padding:8px 14px; border-radius:6px; position:absolute; right:40px; top:12px; font-size:15px; transition:background-color 0.2s;">
      ⬅ Kembali
   </a>
@@ -100,12 +116,29 @@
 
 <div class="main">
   <div class="input-section">
-  <h2>Analisis Duval Triangle 2 LTC-MR</h2>
+  <h2>Analisis Duval Triangle 2 LTC MR</h2>
 
-  <label for="lokasiTrafo">Lokasi / UP :</label>
-<input id="lokasiTrafo" type="text" placeholder="contoh: UP Paiton" />
+    <div class="row">
+  <select id="upSelect" class="input-select"></select>
+  <button id="btnDeleteUP" class="btn-small" style="display:none;">Hapus UP</button>
+</div>
 
-<label for="ch4">CH₄ (Methane):</label>
+    <!-- Pilihan Trafo -->
+    <div class="row">
+      <select id="trafoSelect" class="input-select"></select>
+      <button id="btnDeleteTrafo" class="btn-small" style="display:none;">Hapus Trafo</button>
+    </div>
+
+    <!-- Tambah UP & Trafo -->
+    <div class="row">
+      <button id="btnAddUP" class="btn-small">Tambah UP</button>
+      <button id="btnAddTrafo" class="btn-small">Tambah Trafo</button>
+    </div>
+
+    <label for="tanggalUji">Tanggal Pengujian</label>
+    <input id="tanggalUji" type="date">
+
+    <label for="ch4">CH₄ (Methane):</label>
     <input id="ch4" type="number" placeholder="contoh: 20" />
 
     <label for="c2h4">C₂H₄ (Ethylene):</label>
@@ -115,7 +148,6 @@
     <input id="c2h2" type="number" placeholder="contoh: 10" />
 
     
-
   <!-- Tombol sejajar -->
     <div class="button-row">
       <button onclick="hitungDanPlot()">Hitung & Simpan</button>
@@ -140,8 +172,10 @@
 
       <tr>
       <th>No</th>
-      <th>Lokasi</th>
-      <th>Tanggal</th>
+      <th>UP</th>
+      <th>Trafo</th>
+      <th>Tanggal Uji</th>
+      <th>Tanggal Input</th>
       <th>CH₄</th>
       <th>C₂H₄</th>
       <th>C₂H₂</th>
@@ -194,27 +228,170 @@
   </div>
 </div>
 
+
 <!-- ===================================
       JAVASCRIPT POPUP
 ==================================== -->
 <script>
-  
   const helpBtn = document.getElementById("helpBtn");
   const helpPopup = document.getElementById("helpPopup");
   const closeHelp = document.getElementById("closeHelp");
 
   helpBtn.onclick = () => helpPopup.style.display = "block";
   closeHelp.onclick = () => helpPopup.style.display = "none";
+
   window.onclick = (e) => {
     if (e.target === helpPopup) helpPopup.style.display = "none";
   };
 </script>
+
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-  plotDuval(0, 0, 0, null);
+//DATABASE PLN NP
+
+let databaseUP = {
+  "UP Gresik": ["Trafo Unit 1", "Trafo Unit 2", "Trafo Unit 3"],
+  "UP Paiton": ["Trafo GT1", "Trafo GT2"],
+  "UP Muara Karang": ["Trafo 1", "Trafo 2"],
+  "UP Muara Tawar": ["Trafo 1", "Trafo 2", "Trafo 3"],
+  "UP Indramayu": ["Trafo Unit 1"],
+  "UP Cirata": ["Trafo 1", "Trafo 2"],
+  "UP Saguling": ["Trafo 1", "Trafo 2"],
+  "UP Grati": ["Trafo GT1", "Trafo GT2"],
+  "UP Kamojang": ["Trafo Geothermal 1", "Trafo Geothermal 2"]
+};
+
+databaseUP = JSON.parse(localStorage.getItem("dbUpTrafo")) || databaseUP;
+const saveDB = () => localStorage.setItem("dbUpTrafo", JSON.stringify(databaseUP));
+
+/* ============================
+   LOAD UP
+============================ */
+function loadUP() {
+  const upSel = document.getElementById("upSelect");
+  upSel.innerHTML = `<option value="">-- Pilih UP --</option>` +
+    Object.keys(databaseUP).map(u => `<option>${u}</option>`).join("");
+}
+
+/* ============================
+   LOAD TRAFO SESUAI UP
+============================ */
+function loadTrafo(up) {
+  const trSel = document.getElementById("trafoSelect");
+  trSel.innerHTML = `<option value="">-- Pilih Trafo --</option>`;
+
+  if (!up) return;
+
+  trSel.innerHTML += databaseUP[up]
+    .map(t => `<option>${t}</option>`)
+    .join("");
+}
+
+/* ============================
+   EVENT SELECT UP
+============================ */
+document.getElementById("upSelect").addEventListener("change", function () {
+  const up = this.value;
+  loadTrafo(up);
+
+  document.getElementById("btnDeleteUP").style.display = up ? "inline-block" : "none";
 });
 
-const STORAGE_KEY = "riwayat_duval5_biotemp";
+/* ============================
+   EVENT SELECT TRAFO
+============================ */
+document.getElementById("trafoSelect").addEventListener("change", function () {
+  const tr = this.value;
+  document.getElementById("btnDeleteTrafo").style.display = tr ? "inline-block" : "none";
+});
+
+/* ============================
+   TAMBAH UP
+============================ */
+document.getElementById("btnAddUP").addEventListener("click", () => {
+  const newUP = prompt("Nama UP baru:");
+  if (!newUP) return;
+
+  if (databaseUP[newUP]) return alert("UP sudah ada!");
+
+  databaseUP[newUP] = [];
+  saveDB();
+  loadUP();
+});
+
+/* ============================
+   TAMBAH TRAFO
+============================ */
+document.getElementById("btnAddTrafo").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  if (!up) return alert("Pilih UP dulu!");
+
+  const newTrafo = prompt("Nama trafo baru:");
+  if (!newTrafo) return;
+
+  databaseUP[up].push(newTrafo);
+  saveDB();
+  loadTrafo(up);
+});
+
+/* ============================
+   HAPUS UP
+============================ */
+document.getElementById("btnDeleteUP").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  if (!up) return;
+
+  if (confirm(`Hapus UP "${up}" beserta seluruh Trafonya?`)) {
+    delete databaseUP[up];
+    saveDB();
+    loadUP();
+    document.getElementById("trafoSelect").innerHTML = `<option value="">-- Pilih Trafo --</option>`;
+    document.getElementById("btnDeleteUP").style.display = "none";
+    document.getElementById("btnDeleteTrafo").style.display = "none";
+  }
+});
+
+/* ============================
+   HAPUS TRAFO
+============================ */
+document.getElementById("btnDeleteTrafo").addEventListener("click", () => {
+  const up = document.getElementById("upSelect").value;
+  const tr = document.getElementById("trafoSelect").value;
+
+  if (!tr) return;
+
+  if (confirm(`Hapus Trafo "${tr}"?`)) {
+    databaseUP[up] = databaseUP[up].filter(t => t !== tr);
+    saveDB();
+    loadTrafo(up);
+    document.getElementById("btnDeleteTrafo").style.display = "none";
+  }
+});
+
+/* ============================
+   INITIAL LOAD
+============================ */
+document.addEventListener("DOMContentLoaded", loadUP);
+
+</script>
+
+
+
+<script>
+  // Saat halaman pertama kali dibuka: plot kosong
+  document.addEventListener("DOMContentLoaded", () => {
+    plotDuval(0, 0, 0, null);
+  });
+
+  // Isi default tanggal uji = hari ini kalau belum diisi
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    const tUji = document.getElementById("tanggalUji");
+    if (tUji && !tUji.value) {
+      tUji.value = today;
+    }
+  });
+
+  const STORAGE_KEY = "riwayat_duval 2 LTC MR";
 let hasilData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 updateTable();
 
@@ -340,170 +517,171 @@ updateTable();
 ];
 
 
-
-// === KONVERSI TERNARY → KOORDINAT 2D ===
-function ternaryToXY(a, b, c) {
-  const s = a + b + c;
-  if (s === 0) return { x: 0, y: 0 };
-  const an = a / s, bn = b / s, cn = c / s;
-  const sqrt3over2 = Math.sqrt(3) / 2;
-  return { x: 1 - (0.5 * an + cn), y: an * sqrt3over2 };
-}
-
-// === CEK TITIK DALAM POLYGON ===
-function pointInPolygon2D(point, polygon) {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x, yi = polygon[i].y;
-    const xj = polygon[j].x, yj = polygon[j].y;
-    const intersect = ((yi > point.y) !== (yj > point.y)) &&
-      (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-
-// === DETEKSI ZONA ===
-function detectRegionForPoint(a, b, c) {
-  const pt = ternaryToXY(a, b, c);
-  for (let r of regions) {
-    const poly = r.coords.map(p => ternaryToXY(p[0], p[2], p[1]));
-    if (pointInPolygon2D(pt, poly)) return r;
-  }
-  return null;
-}
-
-// === FUNGSI UTAMA HITUNG & PLOT ===
-function hitungDanPlot() {
-  const ch4 = parseFloat(document.getElementById("ch4").value);
-  const c2h4 = parseFloat(document.getElementById("c2h4").value);
-  const c2h2 = parseFloat(document.getElementById("c2h2").value);
-  const lokasi = document.getElementById("lokasiTrafo").value || "-";
-  
-  if (isNaN(ch4) || isNaN(c2h4) || isNaN(c2h2) || (ch4 + c2h4 + c2h2) === 0) {
-    alert("Isi semua nilai gas dengan benar!");
-    return;
+  // === KONVERSI TERNARY → KOORDINAT 2D ===
+  function ternaryToXY(a, b, c) {
+    const s = a + b + c;
+    if (s === 0) return { x: 0, y: 0 };
+    const an = a / s, bn = b / s, cn = c / s;
+    const sqrt3over2 = Math.sqrt(3) / 2;
+    return { x: 1 - (0.5 * an + cn), y: an * sqrt3over2 };
   }
 
-  const total = ch4 + c2h4 + c2h2;
-  const pCH4 = (ch4 / total) * 100;
-  const pC2H4 = (c2h4 / total) * 100;
-  const pC2H2 = (c2h2 / total) * 100;
+  // === CEK TITIK DALAM POLYGON ===
+  function pointInPolygon2D(point, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].x, yi = polygon[i].y;
+      const xj = polygon[j].x, yj = polygon[j].y;
+      const intersect = ((yi > point.y) !== (yj > point.y)) &&
+        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
 
-  // === LOW NORMAL (posisi yang benar) ===
-  if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
+  // === DETEKSI ZONA ===
+  function detectRegionForPoint(a, b, c) {
+    const pt = ternaryToXY(a, b, c);
+    for (let r of regions) {
+      const poly = r.coords.map(p => ternaryToXY(p[0], p[2], p[1]));
+      if (pointInPolygon2D(pt, poly)) return r;
+    }
+    return null;
+  }
 
-    const hasilLow = "Normal";
-    const rekomLow = [
-      "Peralatan dalam kondisi normal.",
-      "Lakukan monitoring rutin sesuai jadwal (tahunan / semester).",
-      "Tidak diperlukan tindakan korektif khusus."
-    ];
+  // === FUNGSI UTAMA HITUNG & PLOT (INPUT MANUAL) ===
+  function hitungDanPlot() {
 
-    document.getElementById("hasilText").innerHTML =
-      `<b>Hasil:</b> ${hasilLow}<br><b>Rekomendasi:</b><ol>${rekomLow.map(r => `<li>${r}</li>`).join('')}</ol>
-       <div style='margin-top:8px;color:#333;'>%CH₄=${pCH4.toFixed(1)} | %C₂H₄=${pC2H4.toFixed(1)} | %C₂H₂=${pC2H2.toFixed(1)}</div>`;
+    const up    = document.getElementById("upSelect").value || "-";
+    const trafo = document.getElementById("trafoSelect").value || "-";
+
+    const today = new Date().toISOString().split("T")[0];
+    const tUjiInput = document.getElementById("tanggalUji").value;
+    const tanggalUji   = tUjiInput || today;   // kalau kosong, pakai hari ini
+    const tanggalInput = today;               // tanggal input = hari ini
+
+    const ch4  = parseFloat(document.getElementById("ch4").value);
+    const c2h4 = parseFloat(document.getElementById("c2h4").value);
+    const c2h2 = parseFloat(document.getElementById("c2h2").value);
+
+    if (!up || !trafo) {
+      alert("Pilih UP dan Trafo terlebih dahulu!");
+      return;
+    }
+
+    if (isNaN(ch4) || isNaN(c2h4) || isNaN(c2h2) || (ch4 + c2h4 + c2h2) === 0) {
+      alert("Isi semua nilai gas dengan benar!");
+      return;
+    }
+
+    const total = ch4 + c2h4 + c2h2;
+    const pCH4  = (ch4  / total) * 100;
+    const pC2H4 = (c2h4 / total) * 100;
+    const pC2H2 = (c2h2 / total) * 100;
+
+    // === LOW NORMAL HANDLING ===
+    if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
+
+      const hasilLow = "Low Normal";
+      const rekomLow = [
+        "Peralatan dalam kondisi normal.",
+        "Monitoring rutin sesuai jadwal.",
+        "Tidak diperlukan tindakan korektif."
+      ];
+
+      document.getElementById("hasilText").innerHTML =
+        `<b>Hasil:</b> ${hasilLow}<br><b>Rekomendasi:</b><ol>${rekomLow.map(r => `<li>${r}</li>`).join('')}</ol>`;
+
+      hasilData.push({
+        up,
+        trafo,
+        tanggalUji,
+        tanggalInput,
+        ch4, c2h4, c2h2,
+        fault: hasilLow,
+        rekom: rekomLow.join("; ")
+      });
+
+      saveToStorage();
+      updateTable();
+      Plotly.purge("duvalPlot");
+      return;
+    }
+
+    // === DETEKSI FAULT ZONA DUVAL ===
+    const found = detectRegionForPoint(pCH4, pC2H4, pC2H2);
+    const fault = found ? found.name : "Tidak terklasifikasi";
+    const info  = rekomendasiMap[fault];
+
+    document.getElementById("hasilText").innerHTML = info
+      ? `<b>Hasil:</b> ${info.hasil}<br><b>Rekomendasi:</b><ol>${info.rekom.map(r=>`<li>${r}</li>`).join('')}</ol>`
+      : `<b>Hasil:</b> ${fault}`;
 
     hasilData.push({
-      tanggal: new Date().toLocaleString(),
-      lokasi,
-      ch4,
-      c2h4,
-      c2h2,
-      fault: hasilLow,
-      rekom: rekomLow.join("; ")
+      up,
+      trafo,
+      tanggalUji,
+      tanggalInput,
+      ch4, c2h4, c2h2,
+      fault,
+      rekom: info ? info.rekom.join("; ") : "-"
     });
 
     saveToStorage();
     updateTable();
-
-    // 💥 HAPUS PLOT (tidak menampilkan segitiga)
-    Plotly.purge("duvalPlot");
-
-    return; // STOP — tidak masuk duval
+    plotDuval(pCH4, pC2H4, pC2H2, found);
   }
 
-  // === PROSES NORMAL DUVAL ===
-  const found = detectRegionForPoint(pCH4, pC2H4, pC2H2);
-  const fault = found ? found.name : "Tidak terklasifikasi";
-  const info = rekomendasiMap[fault];
+  // === PLOT SEGITIGA DUVAL ===
+  function plotDuval(aVal = 0, bVal = 0, cVal = 100, foundRegion = null) {
+    const traces = regions.map(r => ({
+      type: 'scatterternary',
+      mode: 'lines',
+      fill: 'toself',
+      fillcolor: r.color,
+      line: { color: 'black', width: 1 },
+      name: r.name,
+      a: r.coords.map(p => p[0]), 
+      b: r.coords.map(p => p[1]),
+      c: r.coords.map(p => p[2])  
+    }));
 
-  document.getElementById("hasilText").innerHTML = info
-    ? `<b>Hasil:</b> ${info.hasil}<br><b>Rekomendasi:</b><ol>${info.rekom.map(r=>`<li>${r}</li>`).join('')}</ol>
-       <div style='margin-top:8px;color:#333;'>%CH₄=${pCH4.toFixed(1)} | %C₂H₄=${pC2H4.toFixed(1)} | %C₂H₂=${pC2H2.toFixed(1)}</div>`
-    : `<b>Hasil:</b> ${fault}`;
+    const point = {
+      type: 'scatterternary',
+      mode: 'markers',
+      a: [aVal],
+      b: [cVal], 
+      c: [bVal], 
+      marker: {
+        color: foundRegion ? foundRegion.color : 'black',
+        size: 14,
+        line: { color: '#222', width: 1 }
+      },
+      name: 'Hasil'
+    };
 
-  hasilData.push({
-    tanggal: new Date().toLocaleString(),
-    lokasi,
-    ch4,
-    c2h4,
-    c2h2,
-    fault,
-    rekom: info ? info.rekom.join("; ") : "-"
-  });
+    const layout = {
+      ternary: {
+        sum: 100,
+        aaxis: { title: '', ticksuffix: '', dtick: 10 },
+        baxis: { title: '', ticksuffix: '', dtick: 10 },
+        caxis: { title: '', ticksuffix: '', dtick: 10 }
+      },
+      annotations: [
+        { text: "% CH₄ →", x: 0.22, y: 0.5, textangle: -60, showarrow: false, font: { size: 14, color: '#003399' } },
+        { text:" % C₂H₄ →" , x: 0.78, y: 0.5, textangle: 60, showarrow: false, font: { size: 14, color: '#003399' } },
+        { text: "← % C₂H₂", x: 0.5, y: -0.15, textangle: 0, showarrow: false, font: { size: 14, color: '#003399' } }
+      ],
+      title: 'DUVAL TRIANGLE 2 LTC MR',
+      height: 500,
+      showlegend: true,
+      legend: { orientation: 'h', x: 0.1, y: -0.12 }
+    };
 
-  saveToStorage();
-  updateTable();
-  plotDuval(pCH4, pC2H4, pC2H2, found);
-}
+    Plotly.react('duvalPlot', [point, ...traces], layout);
+  }
 
-
-// === PLOT SEGITIGA DUVAL ===
-function plotDuval(aVal = 0, bVal = 0, cVal = 100, foundRegion = null) {
-  // --- Gambar setiap zona (region) ---
-  const traces = regions.map(r => ({
-    type: 'scatterternary',
-    mode: 'lines',
-    fill: 'toself',
-    fillcolor: r.color,
-    line: { color: 'black', width: 1 },
-    name: r.name,
-    a: r.coords.map(p => p[0]), 
-    b: r.coords.map(p => p[1]), // FIX jangan di ubah
-    c: r.coords.map(p => p[2])  
-  }));
-
-  // --- Titik hasil (point) ---
-  const point = {
-    type: 'scatterternary',
-    mode: 'markers',
-    a: [aVal],
-    b: [cVal], 
-    c: [bVal], 
-      
-    marker: {
-      color: foundRegion ? foundRegion.color : 'black',
-      size: 14,
-      line: { color: '#222', width: 1 }
-    },
-    name: 'Hasil'
-  };
-
-  // --- Layout segitiga (mirror) ---
-  const layout = {
-    ternary: {
-      sum: 100,
-      aaxis: { title: '', ticksuffix: '', dtick: 10 },
-      baxis: { title: '', ticksuffix: '', dtick: 10 },
-      caxis: { title: '', ticksuffix: '', dtick: 10 }
-    },
-    annotations: [
-      { text: "% CH₄ →", x: 0.22, y: 0.5, textangle: -60, showarrow: false, font: { size: 14, color: '#003399' } },
-      { text:" % C₂H₄ →" , x: 0.78, y: 0.5, textangle: 60, showarrow: false, font: { size: 14, color: '#003399' } },
-      { text: "← % C₂H₂", x: 0.5, y: -0.15, textangle: 0, showarrow: false, font: { size: 14, color: '#003399' } }
-    ],
-    title: 'DUVAL TRIANGLE 2 LTC-MR',
-    height: 500,
-    showlegend: true,
-    legend: { orientation: 'h', x: 0.1, y: -0.12 }
-  };
-
-  Plotly.react('duvalPlot', [point, ...traces], layout)
-
-}
-
-// === REKOMENDASI SETIAP FAULT ===
+  // === REKOMENDASI SETIAP FAULT ===
  const rekomendasiMap = {
   
   "X1": {
@@ -598,64 +776,96 @@ function plotDuval(aVal = 0, bVal = 0, cVal = 100, foundRegion = null) {
   }
 };
 
-// === UPDATE TABEL ===
-function updateTable(){
-  const tbody = document.querySelector("#hasilTable tbody");
+  // === UPDATE TABEL ===
+  function updateTable() {
+    const tbody = document.querySelector("#hasilTable tbody");
 
-  tbody.innerHTML = hasilData.length
-    ? hasilData.map((d,i)=>{
+    if (!hasilData.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" style="color:#888; text-align:center;">Belum ada data</td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = hasilData
+      .map((d, i) => {
         const rekomList = d.rekom && d.rekom !== "-"
-          ? d.rekom.split(";").map((r,idx)=>`<div>${idx+1}. ${r.trim()}</div>`).join("")
+          ? d.rekom.split(";").map((r, idx) => `<div>${idx + 1}. ${r.trim()}</div>`).join("")
           : "-";
 
         return `
-        <tr>
-          <td>${i+1}</td>
-          <td>${d.lokasi || ""}</td>
-          <td>${d.tanggal}</td>
-          <td>${d.ch4}</td>
-          <td>${d.c2h4}</td>
-          <td>${d.c2h2}</td>
-          <td>${d.fault}</td>
-          <td>${rekomList}</td>
-        </tr>`;
-      }).join("")
-    : '<tr><td colspan="8" style="color:#888;">Belum ada data</td></tr>';
-}
-
-
-
-// === HAPUS SEMUA DATA ===
-function hapusSemua(){
-  if(confirm("Hapus semua riwayat analisis?")){
-    hasilData=[];localStorage.removeItem(STORAGE_KEY);updateTable();
+          <tr>
+            <td>${i + 1}</td>
+            <td>${d.up || "-"}</td>
+            <td>${d.trafo || "-"}</td>
+            <td>${d.tanggalUji || "-"}</td>
+            <td>${d.tanggalInput || "-"}</td>
+            <td>${d.ch4}</td>
+            <td>${d.c2h4}</td>
+            <td>${d.c2h2}</td>
+            <td>${d.fault}</td>
+            <td>${rekomList}</td>
+          </tr>
+        `;
+      })
+      .join("");
   }
-}
-/* =======================
-   Table & storage tambahan
-   ======================= */
-function saveToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(hasilData));
-}
 
-/* =======================
-   Excel import (SheetJS)
-   ======================= */
-document.getElementById('excelFile').addEventListener('change', function(e) {
+  function hapusSemua(){
+    if(confirm("Hapus semua riwayat analisis?")){
+      hasilData=[];
+      localStorage.removeItem(STORAGE_KEY);
+      updateTable();
+    }
+  }
+
+  function saveToStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(hasilData));
+  }
+
+  // Helper konversi tanggal Excel → yyyy-mm-dd
+  function safeExcelDate(value) {
+    if (!value) return "-";
+    if (value instanceof Date) {
+      return value.toISOString().split("T")[0];
+    }
+    if (typeof value === "number") {
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const d = new Date(excelEpoch.getTime() + value * 86400000);
+      return d.toISOString().split("T")[0];
+    }
+    if (typeof value === "string") {
+      const d = new Date(value);
+      if (!isNaN(d)) return d.toISOString().split("T")[0];
+      return value;
+    }
+    return "-";
+  }
+
+ /* =======================
+   Excel Import (SheetJS) - LTC MR FIXED
+======================= */
+document.getElementById('excelFile').addEventListener('change', function (e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = function (evt) {
     const data = new Uint8Array(evt.target.result);
     const workbook = XLSX.read(data, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: 0 });
+
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    const today = new Date().toISOString().split("T")[0];
 
     rows.forEach(row => {
+      const up    = row.UP || row["Nama UP"] || "-";
+      const trafo = row.Trafo || row["Nama Trafo"] || "-";
 
-      const lokasi = row["Nama UP-Trafo"] || row["Lokasi"] || "-";
+      const tanggalUji   = safeExcelDate(row["Tanggal Uji"] || row.Tanggal || "");
+      const tanggalInput = today;
 
       const ch4  = Number(row.CH4  || 0);
       const c2h4 = Number(row.C2H4 || 0);
@@ -663,28 +873,32 @@ document.getElementById('excelFile').addEventListener('change', function(e) {
 
       if ((ch4 + c2h4 + c2h2) === 0) return;
 
-      /* =========================================
-   BATAS LOW NORMAL (TIDAK DIPLOT DI SEGITIGA)
-   ========================================= */
-if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
+      /* =========================
+         LOW NORMAL (TIDAK DIPLOT)
+      ========================= */
+      if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
+        const rekomLowNormal = [
+          "Peralatan dalam kondisi normal.",
+          "Lakukan monitoring rutin sesuai jadwal.",
+          "Tidak diperlukan tindakan korektif."
+        ];
 
-  const rekomLowNormal = [
-    "Peralatan dalam kondisi normal.",
-    "Lakukan monitoring rutin sesuai jadwal (tahunan / semester).",
-    "Tidak diperlukan tindakan korektif khusus."
-  ];
+        hasilData.push({
+          up,
+          trafo,
+          tanggalUji,
+          tanggalInput,
+          ch4,
+          c2h4,
+          c2h2,
+          fault: "NORMAL",
+          rekom: rekomLowNormal.join("; ")
+        });
 
-  hasilData.push({
-    tanggal: row.Tanggal || new Date().toLocaleString(),
-    lokasi,
-    ch4, c2h4, c2h2,
-    fault: "NORMAL",
-    rekom: rekomLowNormal.join("; ")   // ← masuk ke kolom rekom
-  });
+        return;
+      }
 
-  return; // STOP, tidak diplot
-}
-
+      // ===== PROSES NORMAL DUVAL =====
       const total = ch4 + c2h4 + c2h2;
       const pCH4  = (ch4  / total) * 100;
       const pC2H4 = (c2h4 / total) * 100;
@@ -695,13 +909,16 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
       const info  = rekomendasiMap[fault];
 
       hasilData.push({
-        tanggal: row.Tanggal || new Date().toLocaleString(),
-        lokasi,
-        ch4, c2h4, c2h2,
+        up,
+        trafo,
+        tanggalUji,
+        tanggalInput,
+        ch4,
+        c2h4,
+        c2h2,
         fault,
         rekom: info ? info.rekom.join("; ") : "-"
       });
-
     });
 
     saveToStorage();
@@ -709,12 +926,11 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
 
     /* ============================
        RE-PLOT SEMUA TITIK VALID
-       ============================ */
+    ============================ */
     Plotly.purge('duvalPlot');
 
-    // Titik valid (bukan LOW NORMAL)
     const traces = hasilData
-      .filter(d => d.fault !== "LOW NORMAL")
+      .filter(d => d.fault !== "NORMAL")
       .map((d, i) => {
         const total = d.ch4 + d.c2h4 + d.c2h2;
         if (total === 0) return null;
@@ -741,7 +957,6 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
         };
       }).filter(Boolean);
 
-    // Warna area region Duval
     const areaTraces = regions.map(r => ({
       type: 'scatterternary',
       mode: 'lines',
@@ -754,9 +969,6 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
       c: r.coords.map(p => p[2])
     }));
 
-    /* ==================================
-       === PLOTLY YANG KAMU MINTA ===
-       ================================== */
     Plotly.react('duvalPlot', [...areaTraces, ...traces], {
       ternary: {
         sum: 100,
@@ -764,14 +976,12 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
         baxis: { title: '', ticksuffix: '', dtick: 10 },
         caxis: { title: '', ticksuffix: '', dtick: 10 }
       },
-
       annotations: [
         { text: "% CH₄ →",  x: 0.22, y: 0.5,  textangle: -60, showarrow: false, font: { size: 14, color: '#003399' } },
         { text:" % C₂H₄ →", x: 0.78, y: 0.5,  textangle: 60,  showarrow: false, font: { size: 14, color: '#003399' } },
         { text: "← % C₂H₂", x: 0.5,  y: -0.15,textangle: 0,   showarrow: false, font: { size: 14, color: '#003399' } }
       ],
-
-      title: 'DUVAL TRIANGLE 2 LTC',
+      title: 'DUVAL TRIANGLE 2 LTC-MR',
       height: 500
     });
 
@@ -781,30 +991,29 @@ if (ch4 < 25 && c2h4 < 20 && c2h2 < 2) {
 
   reader.readAsArrayBuffer(file);
 });
+ function downloadExcel() {
+    let csv = "No,UP,Trafo,Tanggal Uji,Tanggal Input,CH4,C2H4,C2H2,Fault,Rekomendasi\n";
 
+    hasilData.forEach((d, i) => {
+      const r = (d.rekom || "").replace(/,/g, ";");
+      csv += `${i + 1},${d.up || "-"},${d.trafo || "-"},${d.tanggalUji || "-"},${d.tanggalInput || "-"},${d.ch4},${d.c2h4},${d.c2h2},"${d.fault}","${r}"\n`;
+    });
 
-// === EXPORT CSV ===
-function downloadExcel(){
-  let csv="No,Tanggal,CH4,C2H4,C2H2,Fault,Rekomendasi\n";
-  hasilData.forEach((d,i)=>{
-    const r=(d.rekom||"").replace(/,/g,';');
-    csv+=`${i+1},${d.tanggal},${d.ch4},${d.c2h4},${d.c2h2},"${d.fault}","${r}"\n`;
-  });
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="Riwayat_Duval_Triangle_2 LTC MR.csv";
-  a.click();
-  showToast();
-}
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "Riwayat_Duval_Triangle_2_LTC MR.csv";
+    a.click();
 
-function showToast(msg="Data disimpan ke Excel"){
-  const t=document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2000);
-}
+    showToast("CSV berhasil diunduh!");
+  }
 
+  function showToast(msg = "Data disimpan ke Excel") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
 </script>
 </body>
 </html>
