@@ -3,10 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DGA Check | THE Duval Triangle 7 FOR THERMAL FAULT (FR3 OIL)</title>
+  <title>DGA Check |THE Duval Triangle 7 FOR THERMAL FAULT (FR3 OIL)</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
+  /* ========== FILTER ========== */
+  .filterable { position: relative; cursor: pointer; user-select: none; }
+  .filter-arrow { font-size: 12px; margin-left: 6px; color: #fff; } 
+  .filter-menu {
+    display: none;
+    position: absolute;
+    top: 34px;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    z-index: 9999;
+    min-width: 200px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 8px;
+    border-radius: 6px;
+    color: #000; 
+  }
+  .filter-menu div { padding: 6px 10px; border-radius: 4px; color: #000; }
+  .filter-menu div:hover { background: #eef2ff; cursor: pointer; }
+  .filter-menu .selected { background: #003399; color: #fff; }
+
+  /* ========== existing CSS ========== */
   body { font-family: 'Segoe UI', sans-serif; background-color: #f5f7fb; margin: 0; padding: 0; }
   header { background-color: #003399; color: white; padding: 15px 40px; font-size: 20px; font-weight: bold; }
   .main { display:flex; justify-content:space-between; margin:20px auto; width:90%; background:white; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1); padding:20px;}
@@ -16,11 +40,12 @@
   input { width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:5px; }
   button { background-color:#003399; color:white; border:none; padding:10px 15px; border-radius:5px; margin-top:15px; font-weight:bold; cursor:pointer;}
   button:hover { background-color:#001f66; }
-  .hasil { margin-top:15px; background-color:#eef2ff; border-left:5px solid #003399; padding:15px; border-radius:5px; font-size:15px; line-height:1.6; }
-  .hasil b { color:#001f66; }
+#hasilContainer {width: 90%; margin: 20px auto;}
+    .hasil { background-color:#eef2ff; border-left:5px solid #003399; padding:20px; border-radius:6px; font-size:20px; min-height:140px; width:100%; box-sizing: border-box;}
+    .hasil b { color:#001f66; }
   h2 { color:#003399; font-size:18px; border-bottom:2px solid #003399; padding-bottom:5px; }
   table { width:100%; border-collapse:collapse; margin-top:20px; }
-  th { background-color:#003399; color:white; padding:12px; text-align:center; }
+  th { background-color:#003399; color:white; padding:12px; text-align:center; position: relative; }
   td { border:1px solid #ddd; padding:8px; text-align:center; }
   .action-buttons { margin-top:15px; text-align:right; }
   .btn-excel { background-color:#003399; margin-right:10px; color:white; padding:8px 12px; border-radius:6px; border:none; cursor:pointer; }
@@ -113,23 +138,21 @@
      ⬅ Kembali
   </a>
 </header>
-  
+
 <div class="main">
   <div class="input-section">
-  <h2>Duval Triangle 7 FOR THERMAL FAULT (FR3 OIL)</h2>
+    <h2>Analisis Duval Triangle 7 FOR THERMAL FAULT (FR3 OIL)</h2>
 
     <div class="row">
-  <select id="upSelect" class="input-select"></select>
-  <button id="btnDeleteUP" class="btn-small" style="display:none;">Hapus UP</button>
-</div>
+      <select id="upSelect" class="input-select"></select>
+      <button id="btnDeleteUP" class="btn-small" style="display:none;">Hapus UP</button>
+    </div>
 
-    <!-- Pilihan Trafo -->
     <div class="row">
       <select id="trafoSelect" class="input-select"></select>
       <button id="btnDeleteTrafo" class="btn-small" style="display:none;">Hapus Trafo</button>
     </div>
 
-    <!-- Tambah UP & Trafo -->
     <div class="row">
       <button id="btnAddUP" class="btn-small">Tambah UP</button>
       <button id="btnAddTrafo" class="btn-small">Tambah Trafo</button>
@@ -144,37 +167,45 @@
     <label for="c2h4">C₂H₄ (Ethylene):</label>
     <input id="c2h4" type="number" placeholder="contoh: 30" />
 
-    <label for="c2h6">C₂H₆ (Ethane):</label>
+    <label for="c2h6">C₂H₆ (Acetylene):</label>
     <input id="c2h6" type="number" placeholder="contoh: 10" />
 
-    
-
-  <!-- Tombol sejajar -->
     <div class="button-row">
       <button onclick="hitungDanPlot()">Hitung & Simpan</button>
       <input type="file" id="excelFile" accept=".xlsx, .xls" class="btn-import">
     </div>
-
-    <!-- Hasil analisis -->
-    <div class="hasil" id="hasilText">Hasil analisis akan muncul di sini.</div>
   </div>
 
-  <!-- Grafik di sisi kanan -->
+  <!-- Grafik di kanan -->
   <div class="chart-section">
     <div id="duvalPlot" style="width:100%; height:500px;"></div>
   </div>
 </div>
 
+<!-- HASIL ANALISIS SEKARANG DIPINDAHKAN KE SINI -->
+<div id="hasilContainer">
+  <div class="hasil" id="hasilText">Hasil analisis akan muncul di sini.</div>
+</div>
 
-<div class="container" style="width:90%; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1);">
+
+<div class5="container" style="width:90%; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1);">
   <h2>Riwayat Analisis</h2>
   <table id="hasilTable">
     <thead>
-
       <tr>
       <th>No</th>
-      <th>UP</th>
-      <th>Trafo</th>
+
+      <!-- FILTERABLE HEADERS (ditambahkan) -->
+      <th class="filterable" data-col="up">
+         UP <span class="filter-arrow">▼</span>
+         <div class="filter-menu" id="filterUPMenu"></div>
+      </th>
+
+      <th class="filterable" data-col="trafo">
+        Trafo <span class="filter-arrow">▼</span>
+        <div class="filter-menu" id="filterTrafoMenu"></div>
+      </th>
+
       <th>Tanggal Uji</th>
       <th>Tanggal Input</th>
       <th>CH₄</th>
@@ -182,8 +213,7 @@
       <th>C₂H₆</th>
       <th>Fault</th>
       <th>Rekomendasi</th>
-
-
+      <th>🗑️</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -195,6 +225,15 @@
 </div>
 
 </div>
+
+<!-- ===============================
+     GRAFIK TREN GAS DGA
+=============================== -->
+<div style="width:90%; margin:30px auto; background:white; padding:20px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1);">
+  <h2>Monitoring DGA Transformator</h2>
+  <div id="grafikGas" style="width:100%; height:350px;"></div>
+</div>
+
 
 <footer>© 2025 DGA Check | PLN Nusantara Power</footer>
 
@@ -214,7 +253,6 @@
   </div>
 </div>
 
-
 <!-- ===================================
       JAVASCRIPT POPUP
 ==================================== -->
@@ -233,17 +271,21 @@
 
 <script>
 //DATABASE PLN NP
-
 let databaseUP = {
-  "UP Gresik": ["Trafo Unit 1", "Trafo Unit 2", "Trafo Unit 3"],
-  "UP Paiton": ["Trafo GT1", "Trafo GT2"],
-  "UP Muara Karang": ["Trafo 1", "Trafo 2"],
-  "UP Muara Tawar": ["Trafo 1", "Trafo 2", "Trafo 3"],
-  "UP Indramayu": ["Trafo Unit 1"],
-  "UP Cirata": ["Trafo 1", "Trafo 2"],
-  "UP Saguling": ["Trafo 1", "Trafo 2"],
-  "UP Grati": ["Trafo GT1", "Trafo GT2"],
-  "UP Kamojang": ["Trafo Geothermal 1", "Trafo Geothermal 2"]
+    "UP Paiton": ["Generator Transformer #1", "Generator Transformer #2","Generator Transformer #9","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2","Unit Auxiliary Transformer #9"],
+    "UP Indramayu": ["Generator Transformer #1", "Generator Transformer #2", "Generator Transformer #3","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2","Unit Auxiliary Transformer #3"],
+    "UP Rembang": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Pacitan": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Tanjung Awar-Awar": ["Generator Transformer #1","Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Kaltim Teluk": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Pulang Pisau": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Tenayan": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Sambelia": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Naga Raya": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Bukit Asam": ["Generator Transformer #1", "Generator Transformer #2", "Generator Transformer #3","Generator Transformer #4","Unit Auxiliary Transformer #2","Unit Auxiliary Transformer #3","Unit Auxiliary Transformer #4"],
+    "UP Tarahan": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Sebalang": ["Generator Transformer #1", "TGenerator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"],
+    "UP Punagaya": ["Generator Transformer #1", "Generator Transformer #2","Unit Auxiliary Transformer #1","Unit Auxiliary Transformer #2"]
 };
 
 databaseUP = JSON.parse(localStorage.getItem("dbUpTrafo")) || databaseUP;
@@ -377,11 +419,115 @@ document.addEventListener("DOMContentLoaded", loadUP);
     }
   });
 
-  const STORAGE_KEY = "riwayat_Duval7_FTF_FR3_OIL";
+  const STORAGE_KEY = "riwayat_duval7_FTF_FR3Oil";
   let hasilData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  updateTable();
 
-/* =Regions (swapped)= */
+  // ===== FILTER STATE =====
+  let activeUPFilter = "";
+  let activeTrafoFilter = "";
+  let dataTersaring = [];
+
+  // Helper escape html (safety)
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // REFRESH isi menu filter dari hasilData
+  function refreshFilterMenus() {
+    const upMenu = document.getElementById("filterUPMenu");
+    const trafoMenu = document.getElementById("filterTrafoMenu");
+
+    const uniqueUP = [...new Set(hasilData.map(r => r.up))].filter(x => x && x !== "-").sort();
+    const uniqueTrafo = [...new Set(hasilData.map(r => r.trafo))].filter(x => x && x !== "-").sort();
+
+    upMenu.innerHTML =
+      `<div data-value="">(Semua)</div>` +
+      uniqueUP.map(u => `<div data-value="${escapeHtml(u)}">${escapeHtml(u)}</div>`).join("");
+
+    trafoMenu.innerHTML =
+      `<div data-value="">(Semua)</div>` +
+      uniqueTrafo.map(t => `<div data-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join("");
+
+    // attach click handlers
+    upMenu.querySelectorAll("div").forEach(div => {
+      div.onclick = () => {
+        activeUPFilter = div.dataset.value || "";
+        // highlight selected visually
+        upMenu.querySelectorAll("div").forEach(d => d.classList.remove("selected"));
+        div.classList.add("selected");
+        applyFilterHeader();
+        upMenu.style.display = "none";
+      };
+    });
+
+    trafoMenu.querySelectorAll("div").forEach(div => {
+      div.onclick = () => {
+        activeTrafoFilter = div.dataset.value || "";
+        trafoMenu.querySelectorAll("div").forEach(d => d.classList.remove("selected"));
+        div.classList.add("selected");
+        applyFilterHeader();
+        trafoMenu.style.display = "none";
+      };
+    });
+  }
+
+  // APPLY filter ke tabel
+function applyFilterHeader() {
+  dataTersaring = hasilData.filter(row => {
+    const matchUP = !activeUPFilter || row.up === activeUPFilter;
+    const matchTrafo = !activeTrafoFilter || row.trafo === activeTrafoFilter;
+    return matchUP && matchTrafo;
+  });
+
+  updateTable(dataTersaring);
+  updateGrafikTrend(dataTersaring); // ← INI YANG BARU
+}
+
+  // CLICK handling: buka tutup menu filter, tutup saat klik di luar
+  document.addEventListener("click", function (e) {
+    // jika panah/area filter diklik
+    if (e.target.classList.contains("filter-arrow") || e.target.closest(".filterable")) {
+      const th = e.target.closest("th");
+      if (!th) return;
+      const col = th.dataset.col;
+
+      // tutup semua menu dulu
+      document.querySelectorAll(".filter-menu").forEach(m => (m.style.display = "none"));
+
+      const menu = col === "up" ? document.getElementById("filterUPMenu") : document.getElementById("filterTrafoMenu");
+      if (menu) {
+        menu.style.display = "block";
+      }
+    } else {
+      // tutup jika klik di luar menu
+      if (!e.target.closest(".filter-menu")) {
+        document.querySelectorAll(".filter-menu").forEach(m => (m.style.display = "none"));
+      }
+    }
+  });
+
+  // Panggil refreshFilterMenus pertama kali setelah load data
+  // (dan setiap kali data berubah)
+  // agar menu selalu berisi opsi terbaru
+  function initFilters() {
+    refreshFilterMenus();
+    applyFilterHeader();
+  }
+
+  // ============================================================
+  // Saat data awal sudah diload, inisialisasi filter & tabel
+  // ============================================================
+  document.addEventListener("DOMContentLoaded", () => {
+    initFilters();
+  });
+
+/* =Regions= */
 const regions = [
   { name: 'PD', color: 'rgba(255, 235, 59, 0.7)', short: 'PD',
     coords: [
@@ -438,7 +584,6 @@ const regions = [
     ]
   },
 ];
-
 
   // === KONVERSI TERNARY → KOORDINAT 2D ===
   function ternaryToXY(a, b, c) {
@@ -526,7 +671,7 @@ const regions = [
       });
 
       saveToStorage();
-      updateTable();
+      initFilters(); // refresh menus + table sesuai data
       Plotly.purge("duvalPlot");
       return;
     }
@@ -551,7 +696,7 @@ const regions = [
     });
 
     saveToStorage();
-    updateTable();
+    initFilters(); // refresh menus + table sesuai data
     plotDuval(pCH4, pC2H4, pC2H6, found);
   }
 
@@ -604,7 +749,8 @@ const regions = [
     Plotly.react('duvalPlot', [point, ...traces], layout);
   }
 
-/* === rekomendasi map (pakai yang kamu kirim) === */
+/* === rekomendasi map === */
+
 const rekomendasiMap = {
   "PD": {
     hasil: "Partial Discharge (PD)",
@@ -661,12 +807,12 @@ const rekomendasiMap = {
     ]
   },
 };
-
   // === UPDATE TABEL ===
-  function updateTable() {
+  // dibuat menerima data opsional (default = hasilData)
+  function updateTable(data = hasilData) {
     const tbody = document.querySelector("#hasilTable tbody");
 
-    if (!hasilData.length) {
+    if (!data.length) {
       tbody.innerHTML = `
         <tr>
           <td colspan="10" style="color:#888; text-align:center;">Belum ada data</td>
@@ -674,26 +820,33 @@ const rekomendasiMap = {
       return;
     }
 
-    tbody.innerHTML = hasilData
+    tbody.innerHTML = data
       .map((d, i) => {
         const rekomList = d.rekom && d.rekom !== "-"
-          ? d.rekom.split(";").map((r, idx) => `<div>${idx + 1}. ${r.trim()}</div>`).join("")
+          ? d.rekom.split(";").map((r, idx) => `<div>${idx + 1}. ${escapeHtml(r.trim())}</div>`).join("")
           : "-";
 
-        return `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${d.up || "-"}</td>
-            <td>${d.trafo || "-"}</td>
-            <td>${d.tanggalUji || "-"}</td>
-            <td>${d.tanggalInput || "-"}</td>
-            <td>${d.ch4}</td>
-            <td>${d.c2h4}</td>
-            <td>${d.c2h6}</td>
-            <td>${d.fault}</td>
-            <td>${rekomList}</td>
-          </tr>
-        `;
+        return `<tr>
+  <td>${i+1}</td>
+  <td>${escapeHtml(d.up || "-")}</td>
+  <td>${escapeHtml(d.trafo || "-")}</td>
+  <td>${escapeHtml(d.tanggalUji || "-")}</td>
+  <td>${escapeHtml(d.tanggalInput || "-")}</td>
+  <td>${d.ch4}</td>
+  <td>${d.c2h4}</td>
+  <td>${d.c2h2}</td>
+  <td>${escapeHtml(d.fault)}</td>
+  <td>${rekomList}</td>
+  <td>
+    <button 
+      class="btn-delete"
+      onclick="hapusSatu(${hasilData.indexOf(d)})"
+      title="Hapus baris ini">
+      🗑
+    </button>
+  </td>
+</tr>`;
+
       })
       .join("");
   }
@@ -702,9 +855,22 @@ const rekomendasiMap = {
     if(confirm("Hapus semua riwayat analisis?")){
       hasilData=[];
       localStorage.removeItem(STORAGE_KEY);
-      updateTable();
+      initFilters(); // refresh menu & tabel (akan menampilkan "Belum ada data")
     }
   }
+  function hapusSatu(index){
+  if (index < 0) return;
+
+  if (!confirm("Hapus data analisis ini?")) return;
+
+  hasilData.splice(index, 1);
+  saveToStorage();
+
+  updateTable();
+  refreshFilterMenus();
+  applyFilterHeader();
+}
+
 
   function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hasilData));
@@ -800,7 +966,7 @@ const rekomendasiMap = {
       });
 
       saveToStorage();
-      updateTable();
+      initFilters(); // refresh menu & table sesuai data terbaru
 
       // Re-plot semua titik (kecuali NORMAL)
       Plotly.purge('duvalPlot');
@@ -853,8 +1019,8 @@ const rekomendasiMap = {
           caxis: { title: '', ticksuffix: '', dtick: 10 }
         },
         annotations: [
-          { text: "% CH₄ →",  x: 0.25, y: 0.5,  textangle: -60, showarrow: false, font: { size: 14, color: '#003399' } },
-          { text:" % C₂H₄ →", x: 0.75, y: 0.5,  textangle: 60,  showarrow: false, font: { size: 14, color: '#003399' } },
+          { text: "% CH₄ →",  x: 0.22, y: 0.5,  textangle: -60, showarrow: false, font: { size: 14, color: '#003399' } },
+          { text:" % C₂H₄ →", x: 0.78, y: 0.5,  textangle: 60,  showarrow: false, font: { size: 14, color: '#003399' } },
           { text: "← % C₂H₆", x: 0.5,  y: -0.15,textangle: 0,   showarrow: false, font: { size: 14, color: '#003399' } }
         ],
         title: 'Duval Triangle 7 FOR THERMAL FAULT (FR3 OIL)',
@@ -879,7 +1045,7 @@ const rekomendasiMap = {
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "Riwayat_Duval7_FOR_THERMAL_FAULT_FR3 OIL.csv";
+    a.download = "Riwayat_Duval_Triangle_7_FTF_FR3_Oil.csv";
     a.click();
 
     showToast("CSV berhasil diunduh!");
@@ -891,6 +1057,76 @@ const rekomendasiMap = {
     t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 2000);
   }
+/* ===========================
+   GRAFIK TREN GAS DGA
+   =========================== */
+
+function updateGrafikTrend(data) {
+  if (!data || data.length === 0) {
+    Plotly.purge("grafikGas");
+    return;
+  }
+
+  // Urutkan berdasarkan tanggal uji
+  data.sort((a, b) => new Date(a.tanggalUji) - new Date(b.tanggalUji));
+
+  const traceCH4 = {
+    x: data.map(d => d.tanggalUji),
+    y: data.map(d => d.ch4),
+    mode: "lines+markers",
+    name: "CH₄",
+    line: { width: 2 },
+    marker: { size: 6 }
+  };
+
+  const traceC2H4 = {
+    x: data.map(d => d.tanggalUji),
+    y: data.map(d => d.c2h4),
+    mode: "lines+markers",
+    name: "C₂H₄",
+    line: { width: 2 },
+    marker: { size: 6 }
+  };
+
+  const traceC2H6 = {
+    x: data.map(d => d.tanggalUji),
+    y: data.map(d => d.c2h6),
+    mode: "lines+markers",
+    name: "C₂H₆",
+    line: { width: 2 },
+    marker: { size: 6 }
+  };
+
+  const layout = {
+    title: "Tren Gas DGA",
+    xaxis: {title: "Tanggal Uji",type: "category"},
+    yaxis: { title: "Konsentrasi Gas (ppm)" },
+    legend: { orientation: "h", x: 0.2, y: -0.25 },
+    margin: { t: 50 }
+  };
+
+  Plotly.react("grafikGas", [traceCH4, traceC2H4, traceC2H6], layout);
+}
+
+
+function buatGrafikGas(divId, data, label, field) {
+  const trace = {
+    x: data.map(d => d.tanggalUji),
+    y: data.map(d => d[field]),
+    mode: "lines+markers",
+    name: label
+  };
+
+  const layout = {
+    title: label + " vs Tanggal Uji",
+    xaxis: { title: "Tanggal Uji" },
+    yaxis: { title: label + " (ppm)" },
+    margin: { t: 40 }
+  };
+
+  Plotly.react(divId, [trace], layout);
+}
+
 </script>
 </body>
 </html>
